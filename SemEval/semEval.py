@@ -19,9 +19,13 @@ def load_hazard_product_lists(train_file):
     train_data = pd.read_csv(train_file)
     hazards = train_data["hazard"].dropna().unique().tolist()
     products = train_data["product"].dropna().unique().tolist()
+    hazards_category = train_data["hazard-category"].dropna().unique().tolist()
+    products_category = train_data["product-category"].dropna().unique().tolist()
     # print(hazards)
     # print(products)
-    return hazards, products
+    print(hazards_category)
+    print(products_category)
+    return hazards, products, hazards_category, products_category
 
 def predict_labels(text, candidate_labels, classifier):
     """
@@ -33,48 +37,14 @@ def predict_labels(text, candidate_labels, classifier):
 
     prediction = classifier(text, candidate_labels)
     # print(prediction)
-    # Extract the label with the highest score
     max_score_index = prediction["scores"].index(max(prediction["scores"]))
     best_label = prediction["labels"][max_score_index]
     return best_label
 
-# def generate_predictions(test_file, hazard_list, product_list, output_file, classifier):
-#     """
-#     Generate hazard and product predictions for each test sample and save to output CSV.
-#     """
-#     test_data = pd.read_csv(test_file)
-#     results = []
-
-#     for _, row in test_data.iterrows():
-#         raw_text = row["text"]
-#         print(f"Raw Text: {raw_text}")
-
-#         # Clean and format the raw text
-#         cleaned_text = clean_and_format_text(raw_text)  
-#         print(f"Cleaned Text: {cleaned_text}") 
-
-#         # Predict hazard
-#         predicted_hazard = predict_labels(cleaned_text, hazard_list, classifier)
-
-#         # Predict product
-#         predicted_product = predict_labels(cleaned_text, product_list, classifier)
-
-#         # Store results
-#         results.append({
-#             "text": row["text"],
-#             "hazard": predicted_hazard,
-#             "product": predicted_product
-#         })
-#     print(results)
-#     # Save predictions to output CSV
-#     pd.DataFrame(results).to_csv(output_file, index=False)
-#     print(f"Predictions saved to {output_file}")
-
-def generate_predictions(test_file, hazard_list, product_list, classifier,output_file,start_row=43):
+def generate_predictions(test_file, hazard_list, product_list, hazard_cat, product_cat,classifier,output_file):
     """
     Generate hazard and product predictions for a single test sample and print results.
     """
-    # Clean and format the raw text
     results = []
     test_data = pd.read_csv(test_file)
     # test_data = test_data.iloc[start_row-1:]
@@ -89,15 +59,21 @@ def generate_predictions(test_file, hazard_list, product_list, classifier,output
 
     # Predict product
         predicted_product = predict_labels(cleaned_text, product_list, classifier)
+
+        predicted_hazard_cat = predict_labels(cleaned_text, hazard_cat, classifier)
+        predicted_product_cat = predict_labels(cleaned_text, product_cat, classifier)
+
+
         results.append({
             "text": row["text"],
+            "hazard-category": predicted_hazard_cat,
+            "product-category": predicted_product_cat,
             "hazard": predicted_hazard,
             "product": predicted_product
         })
         #print(f"Results: {results}")
         pd.DataFrame(results).to_csv(output_file, index=False)
         print(f"Prediction {len(results)} saved to {output_file}")
-    # Save predictions to output CSV
     # Print results
         # print(f"Predicted Hazard: {predicted_hazard}")
         # print(f"Predicted Product: {predicted_product}")
@@ -110,10 +86,5 @@ output_file = "submission.csv"
 
 device = 0 if torch.cuda.is_available() else -1
 classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
-
-# Extract unique hazards and products from training data
-hazard_list, product_list = load_hazard_product_lists(train_file)
-
-# Generate predictions and save to CSV
-generate_predictions(test_file, hazard_list, product_list, classifier,output_file)
-
+hazard_list, product_list, hazards_cat , product_cat = load_hazard_product_lists(train_file)
+generate_predictions(test_file, hazard_list, product_list, hazards_cat , product_cat,classifier,output_file)
