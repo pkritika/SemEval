@@ -21,6 +21,7 @@ pip install transformers torch pandas
 # How to Run
 
 python semEval.py
+
 Make sure your semEval.py file contains the provided script and that training_data.csv and incidents.csv are in the same directory.
 
 # Notes
